@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 
 namespace ClavierDor;
@@ -269,7 +268,7 @@ public sealed class MainForm : Form
         _state = _service.ResumeLastGame(name);
         if (_state is null)
         {
-            MessageBox.Show("Aucune partie sauvegardée pour ce joueur.", "Info");
+            MessageBox.Show("Aucune partie sauvegardée pour ce joueur.", "Information");
             return;
         }
 
@@ -322,7 +321,7 @@ public sealed class MainForm : Form
         var scores = _service.ListScores();
         if (scores.Count == 0)
         {
-            MessageBox.Show("Aucun score à exporter.", "Export");
+            MessageBox.Show("Aucun score à exporter.", "Export PDF");
             return;
         }
 
@@ -332,7 +331,7 @@ public sealed class MainForm : Form
         );
         var path = Path.Combine(folder, "classement.pdf");
         PdfExporter.ExportScores(path, scores);
-        MessageBox.Show($"PDF exporté vers {path}", "Export");
+        MessageBox.Show($"PDF exporté vers {path}", "Export PDF");
     }
 
     private void ShowHistory()

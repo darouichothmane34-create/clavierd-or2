@@ -31,7 +31,7 @@ public sealed class GameService
     {
         { 1, "Qualification" },
         { 2, "Demi-finale" },
-        { 3, "Boss" },
+        { 3, "Boss final" },
         { 4, "Clavier d'or" }
     };
 
