@@ -1,0 +1,50 @@
+@startuml
+class Player {
+  +id: int
+  +name: str
+  +role: RoleType
+  +created_at: datetime
+}
+
+class GameSession {
+  +id: int
+  +started_at: datetime
+  +completed: bool
+  +stage: int
+  +score: int
+  +streak: int
+  +front_joker_used: bool
+  +back_joker_used: bool
+  +mobile_joker_used: bool
+}
+
+class Question {
+  +id: int
+  +prompt: str
+  +choice_a: str
+  +choice_b: str
+  +choice_c: str
+  +choice_d: str
+  +correct_choice: str
+  +stage: int
+  +hint: str
+}
+
+class AnswerLog {
+  +id: int
+  +selected: str
+  +is_correct: bool
+  +answered_at: datetime
+}
+
+enum RoleType {
+  Développeur Front
+  Développeur Back
+  Développeur Mobile
+}
+
+Player "1" --> "*" GameSession
+GameSession "1" --> "*" AnswerLog
+AnswerLog "*" --> "1" Question
+Player --> RoleType
+@enduml
