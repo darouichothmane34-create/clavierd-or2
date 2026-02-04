@@ -22,6 +22,8 @@ class ClavierDorApp(tk.Tk):
         self.role_choice = tk.StringVar(value=RoleType.FRONT.value)
         self.status_text = tk.StringVar(value="Bienvenue dans Clavier d'Or")
         self.hint_text = tk.StringVar(value="")
+        self.accuracy_text = tk.StringVar(value="Précision : 0%")
+        self.progress_text = tk.StringVar(value="Progression : 0/4")
         self.theme = tk.StringVar(value="clair")
 
         self._build_layout()
@@ -131,6 +133,15 @@ class ClavierDorApp(tk.Tk):
         tk.Label(frame, textvariable=self.hint_text, bg="#f5f7fb", fg="#3354ff").pack(
             anchor="w", padx=10, pady=4
         )
+        tk.Label(frame, textvariable=self.accuracy_text, bg="#f5f7fb").pack(
+            anchor="w", padx=10, pady=4
+        )
+        tk.Label(frame, textvariable=self.progress_text, bg="#f5f7fb").pack(
+            anchor="w", padx=10, pady=4
+        )
+
+        self.progress_bar = ttk.Progressbar(frame, maximum=self.service.STAGE_MAX, length=260)
+        self.progress_bar.pack(anchor="w", padx=10, pady=6)
 
     def _build_side_panel(self, parent: tk.Frame) -> None:
         panel = tk.LabelFrame(
@@ -144,7 +155,13 @@ class ClavierDorApp(tk.Tk):
         tk.Button(panel, text="Historique", command=self.show_history).pack(
             fill=tk.X, padx=10, pady=6
         )
+        tk.Button(panel, text="Classement", command=self.show_leaderboard).pack(
+            fill=tk.X, padx=10, pady=6
+        )
         tk.Button(panel, text="Exporter PDF", command=self.export_pdf).pack(
+            fill=tk.X, padx=10, pady=6
+        )
+        tk.Button(panel, text="Enregistrer", command=self.save_game).pack(
             fill=tk.X, padx=10, pady=6
         )
         tk.Button(panel, text="Changer thème", command=self.toggle_theme).pack(
@@ -166,11 +183,22 @@ class ClavierDorApp(tk.Tk):
             for button in self.answer_buttons.values():
                 button.config(text="", state=tk.DISABLED)
             self.perk_button.config(state=tk.DISABLED)
+            self.accuracy_text.set("Précision : 0%")
+            self.progress_text.set(f"Progression : 0/{self.service.STAGE_MAX}")
+            self.progress_bar["value"] = 0
             return
 
         stage_name = self.service.STAGE_LABELS.get(self.state.stage, "Épreuve")
         self.stage_label.config(text=f"Étape {self.state.stage} - {stage_name}")
         self.score_label.config(text=f"Score : {self.state.score}")
+        self.accuracy_text.set(
+            f"Précision : {self.state.accuracy:.0f}% ({self.state.correct_answers}/"
+            f"{self.state.total_answers})"
+        )
+        self.progress_text.set(
+            f"Progression : {self.state.stage}/{self.service.STAGE_MAX}"
+        )
+        self.progress_bar["value"] = self.state.stage
 
         if self.state.completed:
             self.prompt_label.config(text="Bravo ! Vous avez obtenu le Clavier d'Or 🎉")
@@ -237,7 +265,10 @@ class ClavierDorApp(tk.Tk):
         if self.state is None:
             return
         if self.state.role == RoleType.FRONT:
-            self.state = self.service.use_front_joker(self.state.session_id)
+            question_id = (
+                self.state.current_question.id if self.state.current_question else None
+            )
+            self.state = self.service.use_front_joker(self.state.session_id, question_id)
             self.status_text.set("Joker Front utilisé : question changée !")
         elif self.state.role == RoleType.BACK:
             self.state = self.service.use_back_joker(self.state.session_id)
@@ -257,6 +288,13 @@ class ClavierDorApp(tk.Tk):
         export_scores(path, scores)
         messagebox.showinfo("Export", f"PDF exporté vers {path}")
 
+    def save_game(self) -> None:
+        if self.state is None:
+            messagebox.showinfo("Enregistrer", "Aucune partie en cours.")
+            return
+        self.status_text.set("Partie enregistrée.")
+        messagebox.showinfo("Enregistrer", "La partie est déjà sauvegardée automatiquement.")
+
     def show_history(self) -> None:
         name = self.player_name.get().strip()
         if not name:
@@ -271,6 +309,17 @@ class ClavierDorApp(tk.Tk):
             for item in history
         ]
         messagebox.showinfo("Historique", "\n".join(lines))
+
+    def show_leaderboard(self) -> None:
+        scores = self.service.list_scores()
+        if not scores:
+            messagebox.showinfo("Classement", "Aucun score enregistré.")
+            return
+        lines = [
+            f"{index + 1}. {name} - {score} pts ({started_at:%d/%m/%Y})"
+            for index, (name, score, started_at) in enumerate(scores[:10])
+        ]
+        messagebox.showinfo("Classement", "\n".join(lines))
 
     def toggle_theme(self) -> None:
         if self.theme.get() == "clair":

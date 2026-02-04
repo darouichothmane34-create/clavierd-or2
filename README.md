@@ -1,14 +1,12 @@
 # Clavier d'Or
 
-Application de quiz compétitif avec progression par étapes, rôles et jokers, sauvegarde des scores, export PDF et modèle de données orienté objet.
+Application de quiz compétitif avec progression par étapes, rôles et jokers, sauvegarde des scores, export PDF et modèle de données orienté objet, désormais disponible en C#.
 
-## Lancer l'application
+## Lancer l'application (C#)
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python src/main.py
+dotnet restore src/ClavierDor/ClavierDor.csproj
+dotnet run --project src/ClavierDor/ClavierDor.csproj
 ```
 
 ## UML

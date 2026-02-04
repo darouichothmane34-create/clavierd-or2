@@ -5,6 +5,7 @@ from datetime import datetime
 from random import shuffle
 
 from sqlalchemy import select
+from sqlalchemy import func
 
 from .data import seed_questions
 from .models import AnswerLog, GameSession, Player, Question, RoleType
@@ -29,6 +30,9 @@ class SessionState:
     stage: int
     score: int
     streak: int
+    correct_answers: int
+    total_answers: int
+    accuracy: float
     current_question: QuestionView | None
     completed: bool
     perk_used: bool
@@ -112,6 +116,17 @@ class GameService:
             session_obj = session.get(GameSession, session_id)
             if session_obj is None:
                 raise ValueError("Session introuvable")
+            total_answers = session.scalar(
+                select(func.count(AnswerLog.id)).where(AnswerLog.session_id == session_id)
+            )
+            correct_answers = session.scalar(
+                select(func.count(AnswerLog.id)).where(
+                    AnswerLog.session_id == session_id, AnswerLog.is_correct.is_(True)
+                )
+            )
+            total_answers = total_answers or 0
+            correct_answers = correct_answers or 0
+            accuracy = (correct_answers / total_answers * 100) if total_answers else 0.0
             question = None
             if not session_obj.completed:
                 question_obj = self._get_question_for_stage(session_obj.stage)
@@ -125,6 +140,9 @@ class GameService:
                 stage=session_obj.stage,
                 score=session_obj.score,
                 streak=session_obj.streak,
+                correct_answers=correct_answers,
+                total_answers=total_answers,
+                accuracy=accuracy,
                 current_question=question,
                 completed=session_obj.completed,
                 perk_used=perk_used,
@@ -160,15 +178,22 @@ class GameService:
             session.commit()
             return self._build_state(session_id)
 
-    def use_front_joker(self, session_id: int) -> SessionState:
+    def use_front_joker(self, session_id: int, current_question_id: int | None) -> SessionState:
         with get_session() as session:
             session_obj = session.get(GameSession, session_id)
             if session_obj is None:
                 raise ValueError("Session inconnue")
             if session_obj.front_joker_used:
                 return self._build_state(session_id)
+            if not self._question_cache:
+                self._load_questions()
+            if current_question_id is not None:
+                self._question_cache = [
+                    question
+                    for question in self._question_cache
+                    if question.id != current_question_id
+                ]
             session_obj.front_joker_used = True
-            session_obj.stage = min(session_obj.stage + 1, self.STAGE_MAX)
             session.commit()
             return self._build_state(session_id)
 
